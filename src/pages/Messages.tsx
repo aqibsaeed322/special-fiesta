@@ -1,8 +1,35 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
   Send,
   Search,
@@ -35,7 +62,7 @@ interface Notification {
   read: boolean;
 }
 
-const messages: Message[] = [
+const initialMessages: Message[] = [
   {
     id: "1",
     sender: "You",
@@ -126,12 +153,77 @@ const statusIcons = {
   read: Check,
 };
 
+const newMessageSchema = z.object({
+  recipient: z.string().min(1, "Recipient is required"),
+  type: z.enum(["direct", "broadcast"]),
+  content: z.string().min(1, "Message is required"),
+});
+
+type NewMessageValues = z.infer<typeof newMessageSchema>;
+
 export default function Messages() {
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"messages" | "notifications">(
     "messages"
   );
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+
+  const form = useForm<NewMessageValues>({
+    resolver: zodResolver(newMessageSchema),
+    defaultValues: {
+      recipient: "",
+      type: "direct",
+      content: "",
+    },
+  });
+
+  const onCreateMessage = (values: NewMessageValues) => {
+    const message: Message = {
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : String(Date.now()),
+      sender: "You",
+      senderAvatar: "JD",
+      recipient: values.type === "broadcast" ? "All Employees" : values.recipient,
+      content: values.content,
+      timestamp: "Just now",
+      type: values.type,
+      status: "sent",
+    };
+
+    setMessages((prev) => [message, ...prev]);
+    setIsNewMessageOpen(false);
+    form.reset();
+    toast({
+      title: "Message sent",
+      description: "Your message has been added.",
+    });
+  };
+
+  const filteredMessages = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return messages;
+    return messages.filter((m) => {
+      return (
+        m.recipient.toLowerCase().includes(q) ||
+        m.content.toLowerCase().includes(q)
+      );
+    });
+  }, [messages, searchQuery]);
+
+  const filteredNotifications = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return notifications;
+    return notifications.filter((n) => {
+      return (
+        n.title.toLowerCase().includes(q) ||
+        n.message.toLowerCase().includes(q)
+      );
+    });
+  }, [searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -143,11 +235,94 @@ export default function Messages() {
             Communicate with your team and view alerts
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setIsNewMessageOpen(true)}>
           <Plus className="w-4 h-4" />
           New Message
         </Button>
       </div>
+
+      <Dialog open={isNewMessageOpen} onOpenChange={setIsNewMessageOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Message</DialogTitle>
+            <DialogDescription>Send a message to a person or broadcast to all employees.</DialogDescription>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onCreateMessage)} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="direct">Direct</SelectItem>
+                          <SelectItem value="broadcast">Broadcast</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="recipient"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>To</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={
+                            form.watch("type") === "broadcast"
+                              ? "All Employees"
+                              : "Recipient name"
+                          }
+                          disabled={form.watch("type") === "broadcast"}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="content"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Message</FormLabel>
+                      <FormControl>
+                        <Textarea className="min-h-[140px]" placeholder="Type your message..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsNewMessageOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="gap-2">
+                  <Send className="w-4 h-4" />
+                  Send
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-border">
@@ -202,7 +377,7 @@ export default function Messages() {
           {/* List */}
           <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden divide-y divide-border">
             {activeTab === "messages" ? (
-              messages.map((message, index) => {
+              filteredMessages.map((message, index) => {
                 const StatusIcon = statusIcons[message.status];
                 return (
                   <div
@@ -252,7 +427,7 @@ export default function Messages() {
                 );
               })
             ) : (
-              notifications.map((notification, index) => (
+              filteredNotifications.map((notification, index) => (
                 <div
                   key={notification.id}
                   className={cn(

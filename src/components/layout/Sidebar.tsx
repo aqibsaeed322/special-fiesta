@@ -8,6 +8,9 @@ import {
   Car,
   Wrench,
   MapPin,
+  UserX,
+  ClipboardCheck,
+  BarChart3,
   MessageSquare,
   Settings,
   ChevronLeft,
@@ -25,6 +28,9 @@ const navItems = [
   { icon: Car, label: "Vehicles", path: "/vehicles" },
   { icon: Wrench, label: "Appliances", path: "/appliances" },
   { icon: MapPin, label: "Locations", path: "/locations" },
+  { icon: UserX, label: "Do Not Hire", path: "/do-not-hire" },
+  { icon: ClipboardCheck, label: "Onboarding", path: "/onboarding" },
+  { icon: BarChart3, label: "Reports", path: "/reports" },
   { icon: MessageSquare, label: "Messages", path: "/messages" },
 ];
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/components/ui/use-toast";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
   Plus,
   Search,
@@ -34,7 +71,7 @@ interface Vehicle {
   mileage: number;
 }
 
-const vehicles: Vehicle[] = [
+const initialVehicles: Vehicle[] = [
   {
     id: "1",
     name: "Ford Transit Van #1",
@@ -100,18 +137,162 @@ const statusStyles = {
   maintenance: "bg-warning/10 text-warning",
 };
 
+const createVehicleSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  type: z.string().min(1, "Type is required"),
+  licensePlate: z.string().min(1, "License plate is required"),
+  status: z.enum(["available", "in-use", "maintenance"]),
+  assignedTo: z.string().optional(),
+  lastInspection: z.string().min(1, "Last inspection date is required"),
+  nextInspection: z.string().min(1, "Next inspection date is required"),
+  fuelLevel: z.coerce.number().min(0, "Min 0").max(100, "Max 100"),
+  mileage: z.coerce.number().min(0, "Must be 0 or greater"),
+});
+
+type CreateVehicleValues = z.infer<typeof createVehicleSchema>;
+
 export default function Vehicles() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles);
 
-  const filteredVehicles = vehicles.filter((vehicle) => {
-    const matchesSearch =
-      vehicle.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vehicle.licensePlate.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || vehicle.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  const form = useForm<CreateVehicleValues>({
+    resolver: zodResolver(createVehicleSchema),
+    defaultValues: {
+      name: "",
+      type: "",
+      licensePlate: "",
+      status: "available",
+      assignedTo: "",
+      lastInspection: "",
+      nextInspection: "",
+      fuelLevel: 75,
+      mileage: 0,
+    },
   });
+
+  const editForm = useForm<CreateVehicleValues>({
+    resolver: zodResolver(createVehicleSchema),
+    defaultValues: {
+      name: "",
+      type: "",
+      licensePlate: "",
+      status: "available",
+      assignedTo: "",
+      lastInspection: "",
+      nextInspection: "",
+      fuelLevel: 75,
+      mileage: 0,
+    },
+  });
+
+  const onCreateVehicle = (values: CreateVehicleValues) => {
+    const vehicle: Vehicle = {
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : String(Date.now()),
+      name: values.name,
+      type: values.type,
+      licensePlate: values.licensePlate,
+      status: values.status,
+      assignedTo: values.assignedTo?.trim() ? values.assignedTo.trim() : undefined,
+      lastInspection: values.lastInspection,
+      nextInspection: values.nextInspection,
+      fuelLevel: values.fuelLevel,
+      mileage: values.mileage,
+    };
+
+    setVehicles((prev) => [vehicle, ...prev]);
+    setIsCreateOpen(false);
+    form.reset();
+    toast({
+      title: "Vehicle added",
+      description: "New vehicle has been added.",
+    });
+  };
+
+  const openView = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsViewOpen(true);
+  };
+
+  const openEdit = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
+    editForm.reset({
+      name: vehicle.name,
+      type: vehicle.type,
+      licensePlate: vehicle.licensePlate,
+      status: vehicle.status,
+      assignedTo: vehicle.assignedTo ?? "",
+      lastInspection: vehicle.lastInspection,
+      nextInspection: vehicle.nextInspection,
+      fuelLevel: vehicle.fuelLevel,
+      mileage: vehicle.mileage,
+    });
+    setIsEditOpen(true);
+  };
+
+  const openDelete = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsDeleteOpen(true);
+  };
+
+  const onEditVehicle = (values: CreateVehicleValues) => {
+    if (!selectedVehicle) return;
+
+    const updated: Vehicle = {
+      ...selectedVehicle,
+      name: values.name,
+      type: values.type,
+      licensePlate: values.licensePlate,
+      status: values.status,
+      assignedTo: values.assignedTo?.trim() ? values.assignedTo.trim() : undefined,
+      lastInspection: values.lastInspection,
+      nextInspection: values.nextInspection,
+      fuelLevel: values.fuelLevel,
+      mileage: values.mileage,
+    };
+
+    setVehicles((prev) => prev.map((v) => (v.id === selectedVehicle.id ? updated : v)));
+    setIsEditOpen(false);
+    toast({
+      title: "Vehicle updated",
+      description: "Vehicle record has been updated.",
+    });
+  };
+
+  const confirmDelete = () => {
+    if (!selectedVehicle) return;
+    const toDelete = selectedVehicle;
+    setVehicles((prev) => prev.filter((v) => v.id !== toDelete.id));
+    setIsDeleteOpen(false);
+    setSelectedVehicle(null);
+    toast({
+      title: "Vehicle deleted",
+      description: "Vehicle has been removed.",
+    });
+  };
+
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter((vehicle) => {
+      const matchesSearch =
+        vehicle.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        vehicle.licensePlate.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" || vehicle.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [vehicles, searchQuery, statusFilter]);
+
+  const availableCount = useMemo(() => vehicles.filter((v) => v.status === "available").length, [vehicles]);
+  const inUseCount = useMemo(() => vehicles.filter((v) => v.status === "in-use").length, [vehicles]);
+  const maintenanceCount = useMemo(() => vehicles.filter((v) => v.status === "maintenance").length, [vehicles]);
 
   return (
     <div className="space-y-6">
@@ -121,11 +302,433 @@ export default function Vehicles() {
           <h1 className="page-title">Vehicles Management</h1>
           <p className="page-subtitle">Track and manage company vehicles</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
           <Plus className="w-4 h-4" />
           Add Vehicle
         </Button>
       </div>
+
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Vehicle</DialogTitle>
+            <DialogDescription>
+              Add a new vehicle record.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onCreateVehicle)} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Ford Transit Van #6" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Van" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="licensePlate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>License Plate</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. ABC-1234" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="available">Available</SelectItem>
+                          <SelectItem value="in-use">In Use</SelectItem>
+                          <SelectItem value="maintenance">Maintenance</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="assignedTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assigned To</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Optional" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="fuelLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fuel Level (%)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} max={100} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="mileage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mileage</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lastInspection"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Inspection</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="nextInspection"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Next Inspection</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isViewOpen}
+        onOpenChange={(open) => {
+          setIsViewOpen(open);
+          if (!open) setSelectedVehicle(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Vehicle Details</DialogTitle>
+            <DialogDescription>View vehicle record information.</DialogDescription>
+          </DialogHeader>
+
+          {selectedVehicle && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <Car className="w-6 h-6" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground truncate">
+                    {selectedVehicle.name}
+                  </p>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {selectedVehicle.licensePlate}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Status</p>
+                  <p className="text-foreground capitalize">
+                    {selectedVehicle.status.replace("-", " ")}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Type</p>
+                  <p className="text-foreground">{selectedVehicle.type}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Assigned To</p>
+                  <p className="text-foreground">{selectedVehicle.assignedTo ?? "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Fuel Level</p>
+                  <p className="text-foreground">{selectedVehicle.fuelLevel}%</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Mileage</p>
+                  <p className="text-foreground">{selectedVehicle.mileage.toLocaleString()} mi</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Last Inspection</p>
+                  <p className="text-foreground">{new Date(selectedVehicle.lastInspection).toLocaleDateString()}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Next Inspection</p>
+                  <p className="text-foreground">{new Date(selectedVehicle.nextInspection).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsViewOpen(false)}>
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedVehicle) return;
+                    setIsViewOpen(false);
+                    openEdit(selectedVehicle);
+                  }}
+                >
+                  Edit
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isEditOpen}
+        onOpenChange={(open) => {
+          setIsEditOpen(open);
+          if (!open) setSelectedVehicle(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Vehicle</DialogTitle>
+            <DialogDescription>Update vehicle record details.</DialogDescription>
+          </DialogHeader>
+
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditVehicle)} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Ford Transit Van #6" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Van" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="licensePlate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>License Plate</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. ABC-1234" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="available">Available</SelectItem>
+                          <SelectItem value="in-use">In Use</SelectItem>
+                          <SelectItem value="maintenance">Maintenance</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="assignedTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assigned To</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Optional" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="fuelLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fuel Level (%)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} max={100} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="mileage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mileage</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="lastInspection"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Inspection</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="nextInspection"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Next Inspection</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete vehicle?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently remove the vehicle record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -134,7 +737,7 @@ export default function Vehicles() {
             <div>
               <p className="text-sm text-muted-foreground">Available</p>
               <p className="text-2xl font-bold text-success">
-                {vehicles.filter((v) => v.status === "available").length}
+                {availableCount}
               </p>
             </div>
             <CheckCircle className="w-8 h-8 text-success/50" />
@@ -145,7 +748,7 @@ export default function Vehicles() {
             <div>
               <p className="text-sm text-muted-foreground">In Use</p>
               <p className="text-2xl font-bold text-primary">
-                {vehicles.filter((v) => v.status === "in-use").length}
+                {inUseCount}
               </p>
             </div>
             <Car className="w-8 h-8 text-primary/50" />
@@ -156,7 +759,7 @@ export default function Vehicles() {
             <div>
               <p className="text-sm text-muted-foreground">Maintenance</p>
               <p className="text-2xl font-bold text-warning">
-                {vehicles.filter((v) => v.status === "maintenance").length}
+                {maintenanceCount}
               </p>
             </div>
             <AlertTriangle className="w-8 h-8 text-warning/50" />
@@ -211,9 +814,28 @@ export default function Vehicles() {
                     </p>
                   </div>
                 </div>
-                <button className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-                  <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+                      aria-label="Vehicle actions"
+                    >
+                      <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => openView(vehicle)}>
+                      View Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEdit(vehicle)}>
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => openDelete(vehicle)}>
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div className="flex items-center justify-between mb-4">

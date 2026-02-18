@@ -1,6 +1,34 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/use-toast";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
   ChevronLeft,
   ChevronRight,
@@ -24,7 +52,7 @@ interface ScheduleEvent {
 const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const hours = Array.from({ length: 12 }, (_, i) => i + 7); // 7 AM to 6 PM
 
-const scheduleEvents: Record<string, ScheduleEvent[]> = {
+const initialScheduleEvents: Record<string, ScheduleEvent[]> = {
   Mon: [
     {
       id: "1",
@@ -118,8 +146,83 @@ const typeColors = {
   training: "bg-warning/10 border-warning/30 text-warning",
 };
 
+const createEventSchema = z
+  .object({
+    day: z.enum(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]),
+    title: z.string().min(1, "Title is required"),
+    assignee: z.string().min(1, "Assignee is required"),
+    location: z.string().min(1, "Location is required"),
+    type: z.enum(["task", "meeting", "break", "training"]),
+    startTime: z.string().min(1, "Start time is required"),
+    endTime: z.string().min(1, "End time is required"),
+  })
+  .refine(
+    (v) => {
+      const toMinutes = (t: string) => {
+        const [h, m] = t.split(":").map((x) => Number(x));
+        return h * 60 + (Number.isFinite(m) ? m : 0);
+      };
+      return toMinutes(v.endTime) > toMinutes(v.startTime);
+    },
+    { message: "End time must be after start time", path: ["endTime"] },
+  );
+
+type CreateEventValues = z.infer<typeof createEventSchema>;
+
+function timeToMinutes(time: string) {
+  const [h, m] = time.split(":").map((x) => Number(x));
+  return h * 60 + (Number.isFinite(m) ? m : 0);
+}
+
 export default function Scheduling() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [eventsByDay, setEventsByDay] = useState<Record<string, ScheduleEvent[]>>(
+    initialScheduleEvents,
+  );
+
+  const form = useForm<CreateEventValues>({
+    resolver: zodResolver(createEventSchema),
+    defaultValues: {
+      day: "Mon",
+      title: "",
+      assignee: "",
+      location: "",
+      type: "task",
+      startTime: "09:00",
+      endTime: "10:00",
+    },
+  });
+
+  const onCreateEvent = (values: CreateEventValues) => {
+    const event: ScheduleEvent = {
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : String(Date.now()),
+      title: values.title,
+      assignee: values.assignee,
+      location: values.location,
+      startTime: values.startTime,
+      endTime: values.endTime,
+      type: values.type,
+    };
+
+    setEventsByDay((prev) => {
+      const dayEvents = prev[values.day] ?? [];
+      return {
+        ...prev,
+        [values.day]: [event, ...dayEvents],
+      };
+    });
+
+    setIsCreateOpen(false);
+    form.reset();
+    toast({
+      title: "Event added",
+      description: "Your schedule event has been created.",
+    });
+  };
 
   const getWeekDates = () => {
     const startOfWeek = new Date(currentWeek);
@@ -137,6 +240,13 @@ export default function Scheduling() {
   const weekDates = getWeekDates();
   const today = new Date();
 
+  const weekMonthLabel = useMemo(() => {
+    return weekDates[0].toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  }, [weekDates]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -145,11 +255,157 @@ export default function Scheduling() {
           <h1 className="page-title">Scheduling</h1>
           <p className="page-subtitle">Plan and manage team schedules</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
           <Plus className="w-4 h-4" />
           Add Event
         </Button>
       </div>
+
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Event</DialogTitle>
+            <DialogDescription>
+              Create a new schedule entry.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onCreateEvent)} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="day"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Day</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select day" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {weekDays.map((d) => (
+                            <SelectItem key={d} value={d}>
+                              {d}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="task">Task</SelectItem>
+                          <SelectItem value="meeting">Meeting</SelectItem>
+                          <SelectItem value="training">Training</SelectItem>
+                          <SelectItem value="break">Break</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Event title" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="assignee"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assignee</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Sarah Williams" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Main Office" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="startTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Time</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="endTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Time</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
       {/* Calendar Header */}
       <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
@@ -165,12 +421,7 @@ export default function Scheduling() {
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <h3 className="font-semibold text-foreground">
-              {weekDates[0].toLocaleDateString("en-US", {
-                month: "long",
-                year: "numeric",
-              })}
-            </h3>
+            <h3 className="font-semibold text-foreground">{weekMonthLabel}</h3>
             <button
               onClick={() => {
                 const next = new Date(currentWeek);
@@ -234,8 +485,9 @@ export default function Scheduling() {
                     {hour.toString().padStart(2, "0")}:00
                   </div>
                   {weekDays.map((day, dayIndex) => {
-                    const events = scheduleEvents[day]?.filter((event) => {
-                      const startHour = parseInt(event.startTime.split(":")[0]);
+                    const events = (eventsByDay[day] ?? []).filter((event) => {
+                      const startMinutes = timeToMinutes(event.startTime);
+                      const startHour = Math.floor(startMinutes / 60);
                       return startHour === hour;
                     });
                     const isToday =
@@ -250,11 +502,10 @@ export default function Scheduling() {
                         )}
                       >
                         {events?.map((event) => {
-                          const startHour = parseInt(
-                            event.startTime.split(":")[0]
-                          );
-                          const endHour = parseInt(event.endTime.split(":")[0]);
-                          const duration = endHour - startHour;
+                          const startMinutes = timeToMinutes(event.startTime);
+                          const endMinutes = timeToMinutes(event.endTime);
+                          const durationMinutes = Math.max(endMinutes - startMinutes, 15);
+                          const startMinuteOfHour = startMinutes % 60;
 
                           return (
                             <div
@@ -264,7 +515,8 @@ export default function Scheduling() {
                                 typeColors[event.type]
                               )}
                               style={{
-                                height: `${duration * 80 - 8}px`,
+                                top: `${4 + (startMinuteOfHour / 60) * 80}px`,
+                                height: `${(durationMinutes / 60) * 80 - 8}px`,
                               }}
                             >
                               <p className="font-medium truncate">
@@ -276,7 +528,7 @@ export default function Scheduling() {
                                   {event.startTime} - {event.endTime}
                                 </span>
                               </div>
-                              {duration > 1 && (
+                              {durationMinutes >= 120 && (
                                 <>
                                   <div className="flex items-center gap-1 mt-1 opacity-80">
                                     <User className="w-3 h-3" />

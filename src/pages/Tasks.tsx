@@ -25,6 +25,23 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -150,9 +167,26 @@ export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
 
   const form = useForm<CreateTaskValues>({
+    resolver: zodResolver(createTaskSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      assignee: "",
+      priority: "medium",
+      status: "pending",
+      dueDate: "",
+      location: "",
+    },
+  });
+
+  const editForm = useForm<CreateTaskValues>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
       title: "",
@@ -187,6 +221,64 @@ export default function Tasks() {
     toast({
       title: "Task created",
       description: "Your task has been added to the list.",
+    });
+  };
+
+  const openView = (task: Task) => {
+    setSelectedTask(task);
+    setIsViewOpen(true);
+  };
+
+  const openEdit = (task: Task) => {
+    setSelectedTask(task);
+    editForm.reset({
+      title: task.title,
+      description: task.description,
+      assignee: task.assignee,
+      priority: task.priority,
+      status: task.status,
+      dueDate: task.dueDate,
+      location: task.location,
+    });
+    setIsEditOpen(true);
+  };
+
+  const openDelete = (task: Task) => {
+    setSelectedTask(task);
+    setIsDeleteOpen(true);
+  };
+
+  const onEditTask = (values: CreateTaskValues) => {
+    if (!selectedTask) return;
+
+    const updated: Task = {
+      ...selectedTask,
+      title: values.title,
+      description: values.description,
+      assignee: values.assignee,
+      priority: values.priority,
+      status: values.status,
+      dueDate: values.dueDate,
+      location: values.location,
+    };
+
+    setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? updated : t)));
+    setIsEditOpen(false);
+    toast({
+      title: "Task updated",
+      description: "Task has been updated.",
+    });
+  };
+
+  const confirmDelete = () => {
+    if (!selectedTask) return;
+    const toDelete = selectedTask;
+    setTasks((prev) => prev.filter((t) => t.id !== toDelete.id));
+    setIsDeleteOpen(false);
+    setSelectedTask(null);
+    toast({
+      title: "Task deleted",
+      description: "Task has been removed.",
     });
   };
 
@@ -377,6 +469,232 @@ export default function Tasks() {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={isViewOpen}
+        onOpenChange={(open) => {
+          setIsViewOpen(open);
+          if (!open) setSelectedTask(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Task Details</DialogTitle>
+            <DialogDescription>View task information.</DialogDescription>
+          </DialogHeader>
+
+          {selectedTask && (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="font-semibold text-foreground">{selectedTask.title}</p>
+                <p className="text-sm text-muted-foreground">{selectedTask.description}</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Assignee</p>
+                  <p className="text-foreground">{selectedTask.assignee}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Location</p>
+                  <p className="text-foreground">{selectedTask.location}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Priority</p>
+                  <p className="text-foreground capitalize">{selectedTask.priority}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Status</p>
+                  <p className="text-foreground capitalize">{selectedTask.status}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Due Date</p>
+                  <p className="text-foreground">{new Date(selectedTask.dueDate).toLocaleDateString()}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Created</p>
+                  <p className="text-foreground">{new Date(selectedTask.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsViewOpen(false)}>
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedTask) return;
+                    setIsViewOpen(false);
+                    openEdit(selectedTask);
+                  }}
+                >
+                  Edit
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isEditOpen}
+        onOpenChange={(open) => {
+          setIsEditOpen(open);
+          if (!open) setSelectedTask(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>Update task details.</DialogDescription>
+          </DialogHeader>
+
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditTask)} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Task title" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Short description" className="min-h-[90px]" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="assignee"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assignee</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Sarah Williams" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Main Office" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Priority</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="dueDate"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Due Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently remove the task.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -486,9 +804,28 @@ export default function Tasks() {
                   </div>
                 </td>
                 <td>
-                  <button className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-                    <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+                        aria-label="Task actions"
+                      >
+                        <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openView(task)}>
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openEdit(task)}>
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => openDelete(task)}>
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </tr>
             ))}
