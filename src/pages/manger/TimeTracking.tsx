@@ -83,19 +83,19 @@ export default function TimeTracking() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="page-header mb-0">
           <h1 className="page-title">Time Tracking</h1>
           <p className="page-subtitle">Monitor employee work hours and attendance</p>
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2 w-full sm:w-auto">
           <Download className="w-4 h-4" />
           Export Report
         </Button>
       </div>
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="stat-card">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -160,7 +160,7 @@ export default function TimeTracking() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -183,80 +183,82 @@ export default function TimeTracking() {
               : "Failed to load time entries"}
           </div>
         ) : null}
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Employee</th>
-              <th>Date</th>
-              <th>Clock In</th>
-              <th>Clock Out</th>
-              <th>Break</th>
-              <th>Total Hours</th>
-              <th>Status</th>
-              <th>Location</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredEntries.map((entry, index) => (
-              <tr
-                key={entry.id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 30}ms` }}
-              >
-                <td>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">
-                      {entry.avatar}
-                    </div>
-                    <span className="font-medium text-foreground">
-                      {entry.employee}
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>{new Date(entry.date).toLocaleDateString()}</span>
-                  </div>
-                </td>
-                <td>
-                  <span className="font-medium text-foreground">
-                    {entry.clockIn}
-                  </span>
-                </td>
-                <td>
-                  <span className="font-medium text-foreground">
-                    {entry.clockOut}
-                  </span>
-                </td>
-                <td>
-                  <span className="text-muted-foreground">{entry.breakTime}</span>
-                </td>
-                <td>
-                  <span
-                    className={cn(
-                      "font-semibold",
-                      entry.totalHours >= 8 ? "text-success" : "text-warning"
-                    )}
-                  >
-                    {entry.totalHours}h
-                  </span>
-                </td>
-                <td>
-                  <Badge
-                    variant="secondary"
-                    className={cn("text-xs capitalize", statusStyles[entry.status])}
-                  >
-                    {entry.status}
-                  </Badge>
-                </td>
-                <td>
-                  <span className="text-muted-foreground">{entry.location}</span>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="data-table w-full min-w-[900px]">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Date</th>
+                <th>Clock In</th>
+                <th>Clock Out</th>
+                <th>Break</th>
+                <th>Total Hours</th>
+                <th>Status</th>
+                <th>Location</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredEntries.map((entry, index) => (
+                <tr
+                  key={entry.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">
+                        {entry.avatar}
+                      </div>
+                      <span className="font-medium text-foreground">
+                        {entry.employee}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-1.5 text-muted-foreground whitespace-nowrap">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>{new Date(entry.date).toLocaleDateString()}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="font-medium text-foreground whitespace-nowrap">
+                      {entry.clockIn}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="font-medium text-foreground whitespace-nowrap">
+                      {entry.clockOut}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="text-muted-foreground whitespace-nowrap">{entry.breakTime}</span>
+                  </td>
+                  <td>
+                    <span
+                      className={cn(
+                        "font-semibold whitespace-nowrap",
+                        entry.totalHours >= 8 ? "text-success" : "text-warning"
+                      )}
+                    >
+                      {entry.totalHours}h
+                    </span>
+                  </td>
+                  <td>
+                    <Badge
+                      variant="secondary"
+                      className={cn("text-xs capitalize whitespace-nowrap", statusStyles[entry.status])}
+                    >
+                      {entry.status}
+                    </Badge>
+                  </td>
+                  <td>
+                    <span className="text-muted-foreground whitespace-nowrap">{entry.location}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
