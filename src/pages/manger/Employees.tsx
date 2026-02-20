@@ -325,19 +325,19 @@ export default function Employees() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="page-header mb-0">
           <h1 className="page-title">Employee Directory</h1>
           <p className="page-subtitle">View and manage your team members</p>
         </div>
-        <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
+        <Button className="gap-2 w-full sm:w-auto" onClick={() => setIsCreateOpen(true)}>
           <Plus className="w-4 h-4" />
           Add Employee
         </Button>
       </div>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Employee</DialogTitle>
             <DialogDescription>
@@ -470,11 +470,11 @@ export default function Employees() {
                 />
               </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button type="submit" className="gap-2">
+                <Button type="submit" className="gap-2 w-full sm:w-auto">
                   <Plus className="w-4 h-4" />
                   Add
                 </Button>
@@ -491,7 +491,7 @@ export default function Employees() {
           if (!open) setSelectedEmployee(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Employee Details</DialogTitle>
             <DialogDescription>View employee information.</DialogDescription>
@@ -540,13 +540,13 @@ export default function Employees() {
                 </div>
               </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsViewOpen(false)}>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsViewOpen(false)} className="w-full sm:w-auto">
                   Close
                 </Button>
                 <Button
                   type="button"
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto"
                   onClick={() => {
                     if (!selectedEmployee) return;
                     setIsViewOpen(false);
@@ -568,7 +568,7 @@ export default function Employees() {
           if (!open) setSelectedEmployee(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Employee</DialogTitle>
             <DialogDescription>Update employee profile details.</DialogDescription>
@@ -699,11 +699,11 @@ export default function Employees() {
                 />
               </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button type="submit">Save</Button>
+                <Button type="submit" className="w-full sm:w-auto">Save</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -711,16 +711,16 @@ export default function Employees() {
       </Dialog>
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95vw] sm:max-w-[425px]">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete employee?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently remove the employee from the directory.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="w-full sm:w-auto">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -736,9 +736,9 @@ export default function Employees() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 sm:mx-0 sm:px-0 sm:pb-0">
           <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[160px] sm:w-[160px]">
               <SelectValue placeholder="Department" />
             </SelectTrigger>
             <SelectContent>
@@ -751,7 +751,7 @@ export default function Employees() {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[130px]">
+            <SelectTrigger className="w-[130px] sm:w-[130px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -765,7 +765,7 @@ export default function Employees() {
       </div>
 
       {/* Employee Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {employeesQuery.isLoading ? (
           <div className="col-span-full p-6 text-sm text-muted-foreground">
             Loading employees...
@@ -780,11 +780,11 @@ export default function Employees() {
         {filteredEmployees.map((employee, index) => (
           <div
             key={employee.id}
-            className="bg-card rounded-xl border border-border shadow-card p-6 hover:shadow-card-hover transition-all duration-300 animate-fade-in"
+            className="bg-card rounded-xl border border-border shadow-card p-4 sm:p-6 hover:shadow-card-hover transition-all duration-300 animate-fade-in"
             style={{ animationDelay: `${index * 50}ms` }}
           >
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                 <div className="relative">
                   <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold">
                     {employee.avatar}
@@ -796,11 +796,9 @@ export default function Employees() {
                     )}
                   />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">
-                    {employee.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{employee.role}</p>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-foreground truncate">{employee.name}</h3>
+                  <p className="text-sm text-muted-foreground truncate">{employee.role}</p>
                 </div>
               </div>
               <DropdownMenu>
@@ -834,11 +832,11 @@ export default function Employees() {
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Phone className="w-4 h-4" />
-                <span>{employee.phone}</span>
+                <span className="truncate">{employee.phone}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4" />
-                <span>{employee.location}</span>
+                <span className="truncate">{employee.location}</span>
               </div>
             </div>
 
@@ -870,9 +868,9 @@ export default function Employees() {
       </div>
 
       {/* Stats */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>Showing {filteredEmployees.length} of {employees.length} employees</span>
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-muted-foreground">
+        <span className="text-center sm:text-left">Showing {filteredEmployees.length} of {employees.length} employees</span>
+        <div className="flex items-center justify-center sm:justify-end gap-4 overflow-x-auto pb-1 sm:pb-0">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-success" />
             {employees.filter((e) => e.status === "active").length} online

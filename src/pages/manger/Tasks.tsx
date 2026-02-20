@@ -304,19 +304,19 @@ export default function Tasks() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="page-header mb-0">
           <h1 className="page-title">Task Management</h1>
           <p className="page-subtitle">Create, assign, and track all tasks</p>
         </div>
-        <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
+        <Button className="gap-2 w-full sm:w-auto" onClick={() => setIsCreateOpen(true)}>
           <Plus className="w-4 h-4" />
           Create Task
         </Button>
       </div>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Task</DialogTitle>
             <DialogDescription>
@@ -457,15 +457,16 @@ export default function Tasks() {
                 />
               </div>
 
-              <DialogFooter>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsCreateOpen(false)}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="gap-2">
+                <Button type="submit" className="gap-2 w-full sm:w-auto">
                   <Plus className="w-4 h-4" />
                   Create
                 </Button>
@@ -482,7 +483,7 @@ export default function Tasks() {
           if (!open) setSelectedTask(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Task Details</DialogTitle>
             <DialogDescription>View task information.</DialogDescription>
@@ -549,7 +550,7 @@ export default function Tasks() {
           if (!open) setSelectedTask(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
             <DialogDescription>Update task details.</DialogDescription>
@@ -675,11 +676,11 @@ export default function Tasks() {
                 />
               </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button type="submit">Save</Button>
+                <Button type="submit" className="w-full sm:w-auto">Save</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -712,9 +713,9 @@ export default function Tasks() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 sm:mx-0 sm:px-0 sm:pb-0">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[140px] sm:w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -725,7 +726,7 @@ export default function Tasks() {
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[140px] sm:w-[140px]">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -735,7 +736,7 @@ export default function Tasks() {
               <SelectItem value="low">Low</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" className="shrink-0">
             <Filter className="w-4 h-4" />
           </Button>
         </div>
@@ -752,106 +753,108 @@ export default function Tasks() {
               : "Failed to load tasks"}
           </div>
         ) : null}
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Task</th>
-              <th>Assignee</th>
-              <th>Priority</th>
-              <th>Status</th>
-              <th>Due Date</th>
-              <th>Location</th>
-              <th className="w-12"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTasks.map((task, index) => (
-              <tr
-                key={task.id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 30}ms` }}
-              >
-                <td>
-                  <div>
-                    <p className="font-medium text-foreground">{task.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                      {task.description}
-                    </p>
-                  </div>
-                </td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
-                      {task.assignee
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </div>
-                    <span className="text-foreground">{task.assignee}</span>
-                  </div>
-                </td>
-                <td>
-                  <Badge
-                    variant="outline"
-                    className={cn("text-xs border", priorityStyles[task.priority])}
-                  >
-                    {task.priority}
-                  </Badge>
-                </td>
-                <td>
-                  <Badge
-                    variant="secondary"
-                    className={cn("text-xs", statusStyles[task.status])}
-                  >
-                    {task.status}
-                  </Badge>
-                </td>
-                <td>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-                  </div>
-                </td>
-                <td>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>{task.location}</span>
-                  </div>
-                </td>
-                <td>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-                        aria-label="Task actions"
-                      >
-                        <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openView(task)}>
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openEdit(task)}>
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => openDelete(task)}>
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="data-table w-full min-w-[980px]">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Assignee</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Due Date</th>
+                <th>Location</th>
+                <th className="w-12"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredTasks.map((task, index) => (
+                <tr
+                  key={task.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <td>
+                    <div>
+                      <p className="font-medium text-foreground">{task.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                        {task.description}
+                      </p>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
+                        {task.assignee
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </div>
+                      <span className="text-foreground">{task.assignee}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <Badge
+                      variant="outline"
+                      className={cn("text-xs border whitespace-nowrap", priorityStyles[task.priority])}
+                    >
+                      {task.priority}
+                    </Badge>
+                  </td>
+                  <td>
+                    <Badge
+                      variant="secondary"
+                      className={cn("text-xs whitespace-nowrap", statusStyles[task.status])}
+                    >
+                      {task.status}
+                    </Badge>
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-1.5 text-muted-foreground whitespace-nowrap">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-1.5 text-muted-foreground whitespace-nowrap">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>{task.location}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+                          aria-label="Task actions"
+                        >
+                          <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openView(task)}>
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEdit(task)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => openDelete(task)}>
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Stats Footer */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>Showing {filteredTasks.length} of {tasks.length} tasks</span>
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-muted-foreground">
+        <span className="text-center sm:text-left">Showing {filteredTasks.length} of {tasks.length} tasks</span>
+        <div className="flex items-center justify-center sm:justify-end gap-4 overflow-x-auto pb-1 sm:pb-0">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-success" />
             {tasks.filter((t) => t.status === "completed").length} completed
