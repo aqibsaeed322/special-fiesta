@@ -1,25 +1,20 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/manger/ui/toaster";
+import { Toaster as Sonner } from "@/components/manger/ui/sonner";
+import { TooltipProvider } from "@/components/manger/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { MainLayout } from "@/components/layout/MainLayout";
-import Dashboard from "./pages/Dashboard";
-import Tasks from "./pages/Tasks";
-import Employees from "./pages/Employees";
-import Scheduling from "./pages/Scheduling";
-import TimeTracking from "./pages/TimeTracking";
-import Vehicles from "./pages/Vehicles";
-import Appliances from "./pages/Appliances";
-import Locations from "./pages/Locations";
-import Messages from "./pages/Messages";
-import Settings from "./pages/Settings";
-import DoNotHire from "./pages/DoNotHire";
-import OnboardingMonitoring from "./pages/OnboardingMonitoring";
-import Reports from "./pages/Reports";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import Login from "./pages/admin/Login";
+import AdminRoutes from "./routes/AdminRoutes";
+import ManagerController from "./routes/ManagerController";
+import { getAuthState } from "./lib/auth";
 
 const queryClient = new QueryClient();
+
+function IndexRedirect() {
+  const auth = getAuthState();
+  if (!auth.isAuthenticated || !auth.role) return <Navigate to="/login" replace />;
+  return <Navigate to={auth.role === "admin" ? "/admin" : "/manager"} replace />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -27,24 +22,13 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/employees" element={<Employees />} />
-            <Route path="/scheduling" element={<Scheduling />} />
-            <Route path="/time-tracking" element={<TimeTracking />} />
-            <Route path="/vehicles" element={<Vehicles />} />
-            <Route path="/appliances" element={<Appliances />} />
-            <Route path="/locations" element={<Locations />} />
-            <Route path="/do-not-hire" element={<DoNotHire />} />
-            <Route path="/onboarding" element={<OnboardingMonitoring />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </MainLayout>
+        <Routes>
+          <Route path="/" element={<IndexRedirect />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/admin/*" element={<AdminRoutes />} />
+          <Route path="/manager/*" element={<ManagerController />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

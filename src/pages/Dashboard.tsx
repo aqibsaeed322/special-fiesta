@@ -2,59 +2,42 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { TaskList } from "@/components/dashboard/TaskList";
 import { EmployeeActivity } from "@/components/dashboard/EmployeeActivity";
 import { ScheduleOverview } from "@/components/dashboard/ScheduleOverview";
-import {
-  ClipboardList,
-  Users,
-  Clock,
-  AlertCircle,
-} from "lucide-react";
+import { ClipboardList, Users, MapPin, Clock } from "lucide-react";
 
 export default function Dashboard() {
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">
-          Welcome back, John! Here's what's happening today.
-        </p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="p-6 space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
-          title="Active Tasks"
-          value={24}
-          subtitle="8 due today"
+          title="Total Tasks"
+          value={0}
           icon={ClipboardList}
-          trend={{ value: 12, isPositive: true }}
-          variant="primary"
+          subtitle=""
+          trend={{ value: 0, isPositive: true }}
         />
         <StatCard
-          title="Employees Working"
-          value={18}
-          subtitle="Out of 25 total"
+          title="Active Employees"
+          value={0}
           icon={Users}
-          trend={{ value: 5, isPositive: true }}
-          variant="success"
+          subtitle=""
+          trend={{ value: 0, isPositive: true }}
         />
         <StatCard
-          title="Hours Logged Today"
-          value="142h"
-          subtitle="Average 7.9h per employee"
+          title="Locations"
+          value={0}
+          icon={MapPin}
+          subtitle=""
+          trend={{ value: 0, isPositive: true }}
+        />
+        <StatCard
+          title="On Time"
+          value="0%"
           icon={Clock}
-          variant="default"
-        />
-        <StatCard
-          title="Overdue Tasks"
-          value={3}
-          subtitle="Needs attention"
-          icon={AlertCircle}
-          variant="danger"
+          subtitle=""
+          trend={{ value: 0, isPositive: true }}
         />
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">
           <TaskList />
@@ -64,7 +47,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Schedule Overview */}
       <ScheduleOverview />
     </div>
   );

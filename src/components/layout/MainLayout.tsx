@@ -1,17 +1,1 @@
-import { Sidebar } from "./Sidebar";
-import { ReactNode } from "react";
-
-interface MainLayoutProps {
-  children: ReactNode;
-}
-
-export function MainLayout({ children }: MainLayoutProps) {
-  return (
-    <div className="min-h-screen bg-background">
-      <Sidebar />
-      <main className="ml-64 min-h-screen transition-all duration-300">
-        <div className="p-8">{children}</div>
-      </main>
-    </div>
-  );
-}
+export { MainLayout } from "../manger/layout/MainLayout";
